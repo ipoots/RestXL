@@ -9,7 +9,6 @@ def get_declared_fields(bases, attrs, with_base_fields=True):
         if hasattr(base, 'base_fields'):
             if len(base.base_fields) > 0:
                 fields.update(base.base_fields)
-    print fields   
     return fields
 class DeclarativeFieldsMetaclass(type):
     """
