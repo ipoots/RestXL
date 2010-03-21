@@ -1,21 +1,31 @@
 """    
-Base Field object
+Default Header objects
 """
 
 class RequiredHeaderException(Exception):
     def __init__(self,errormsg=''):
         return errormsg
+    
 class HeaderValidationException(Exception):
     def __init__(self,errormsg=''):
         return errormsg
+    
 class Header(object):
     """
     Base RestXL field. All field types are subclassed from this class.
     """
     def __init__(
-        self,required=False
+        self,
+        required=False,
+        verbose_name=None,
+        validators=[]
         ):
+        
         self.required = required
+        self.validators = validators
+        
+        if verbose_name:
+            self.verbose_name = verbose_name
     def validate(self,value):
         if self.required and not value:
             raise RequiredHeaderException()
@@ -57,7 +67,7 @@ class IntegerHeader(Header):
     def validate(self,value):
         if not isinstance(value, int):
             raise HeaderValidationException(
-                'This field requires an integer'
+                'This header requires an integer'
                 )
         if self.max_value:
             if value > self.max_value:

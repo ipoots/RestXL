@@ -1,34 +1,54 @@
-from fields import *
+from url_variables import *
 from headers import *
+import httplib2
+from urllib import urlencode
+import urllib2
+try:
+    import json
+except:
+    try:
+        import simplejson as json
+    except:
+        raise ImportError('json or simplejson must be installed')
+try:
+    import simplexmlapi
+except:
+    raise ImportError('simplexmlapi must be installed')
+try:
+    from BeautifulSoup import BeautifulSoup
+except:
+    raise ImportError('beautifulsoup must be installed')
 
-def get_declared_fields(bases, attrs, with_base_fields=True):
-    fields = {}
+class RestXLRequestError(Exception):
+    def __init__(self,msg):
+        return msg
+def get_declared_variables(bases, attrs):
+    variables = {}
     headers = {}
-    for field_name, obj in attrs.items():
-        if isinstance(obj, Field):
-            fields.update({field_name:attrs.pop(field_name)})
+    for variable_name, obj in attrs.items():
+        if isinstance(obj, URLVariable):
+            variables.update({variable_name:attrs.pop(variable_name)})
         if isinstance(obj, Header):
-            headers.update({field_name:attrs.pop(field_name)})
+            headers.update({variable_name:attrs.pop(variable_name)})
         
     for base in bases:
-        if hasattr(base, 'base_fields'):
-            if len(base.base_fields) > 0:
-                fields.update(base.base_fields)
+        if hasattr(base, 'base_variables'):
+            if len(base.base_variables) > 0:
+                variables.update(base.base_variables)
         if hasattr(base, 'base_headers'):
             if len(base.base_headers) > 0:
                 headers.update(base.base_headers)
-    print fields
-    print headers
-    return fields,headers
 
-class DeclarativeFieldsMetaclass(type):
+    return variables,headers
+
+class DeclarativeVariablesMetaclass(type):
     """
     Partially ripped off from Django's forms.
     http://code.djangoproject.com/browser/django/trunk/django/forms/forms.py
     """
     def __new__(cls, name, bases, attrs):
-        attrs['base_fields'] = get_declared_fields(bases, attrs)
-        new_class = super(DeclarativeFieldsMetaclass,
+        attrs['base_variables'],attrs['base_headers'] = get_declared_variables(bases, attrs)
+        new_class = super(DeclarativeVariablesMetaclass,
             cls).__new__(cls, name, bases, attrs)
 
         return new_class
@@ -36,24 +56,74 @@ class DeclarativeFieldsMetaclass(type):
 class BaseRequest(object):
     """
     Base class for all RestXL request classes.
-    """
-    request_url = None
-    def __init__(self,data=None):
-        self.data = data or {}
-#        self.fields = self.base_fields
-    def make_request(self):
-        for field in self.base_fields:
-            field.validate()
-            
-            
+    """       
+    def __init__(self,*args,**kwargs):
+        self.args = args
+        self.kwargs = kwargs        
+        
+    def __call__(self):
+        self._urlvars = {}
+        self._headers = {}
+        for key,value in self.base_variables.items():
+            urlvar = self.kwargs.get(key,None)
+            value.validate(urlvar)
+            if hasattr(value, 'verbose_name'):
+                self._urlvars.update({value.verbose_name:urlvar})
+            else:
+                self._urlvars.update({key:urlvar})
+        for key,value in self.base_headers.items():
+            header = self.kwargs.get(key,None)
+            value.validate(header)
+            if hasattr(value, 'verbose_name'):
+                self._headers.update({value.verbose_name:header})
+            else:
+                self._headers.update({key:header})
+        return self.rest_request()
+        
+    def rest_request(self):
+        
+        method = getattr(self.Meta, 'method','GET')
+         
+        response_type = getattr(self.Meta, 'response_type','xml')
+        if not hasattr(self.Meta, 'request_url'):
+            raise RestXLRequestError('You must have a request url in the Meta class.')
+        
+        request_url = getattr(self.Meta, 'request_url') + getattr(self.Meta, 'request_path', '')
+        if len(self._urlvars) != 0:
+            body = urlencode(self._urlvars)
+            if method == 'GET':
+                request_url += '?'+body
+                body = None
+        else:
+            body = None
+        headers = getattr(self, '_headers',{})
+        h = httplib2.Http()
+        resp, content = h.request(request_url, method=method, body=body,headers=headers)
+        if response_type == 'xml':
+            nd = simplexmlapi.loads(content)
+        if response_type == 'json':
+            nd = json.loads(content)
+        if response_type == 'html':
+            nd = BeautifulSoup(content)
+        if response_type == 'raw':
+            nd = content
+        return nd,resp
+    
+    class Meta:
+        """
+        This class holds important information about how the request is made.
+        """
+        method = 'GET'
+        response_type = 'xml'
         
 class Request(BaseRequest):
-    __metaclass__ = DeclarativeFieldsMetaclass
+    __metaclass__ = DeclarativeVariablesMetaclass
     
 class TestRequest(Request):
-    title = CharField()
-    name = Field()
+    auth_user = CharHeader(verbose_name='X-Auth-User',required=True)
     
-class TestBREquest(TestRequest):
-    google = CharField()
-        
+class TestRequestB(TestRequest):
+    auth_key = CharHeader(verbose_name='X-Auth-Key',required=True)
+    class Meta:
+        request_url = 'https://auth.api.rackspacecloud.com/v1.0'
+        response_type = 'raw'
