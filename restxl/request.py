@@ -24,20 +24,23 @@ class RestXLRequestError(Exception):
         return msg
 def get_declared_variables(bases, attrs):
     variables = {}
+    v_update = variables.update
     headers = {}
+    h_update = headers.update
+    attrs_pop = attrs.pop
     for variable_name, obj in attrs.items():
         if isinstance(obj, URLVariable):
-            variables.update({variable_name:attrs.pop(variable_name)})
+            v_update({variable_name:attrs_pop(variable_name)})
         if isinstance(obj, Header):
-            headers.update({variable_name:attrs.pop(variable_name)})
+            h_update({variable_name:attrs_pop(variable_name)})
         
     for base in bases:
         if hasattr(base, 'base_variables'):
             if len(base.base_variables) > 0:
-                variables.update(base.base_variables)
+                v_update(base.base_variables)
         if hasattr(base, 'base_headers'):
             if len(base.base_headers) > 0:
-                headers.update(base.base_headers)
+                h_update(base.base_headers)
 
     return variables,headers
 
@@ -52,14 +55,16 @@ class DeclarativeVariablesMetaclass(type):
             cls).__new__(cls, name, bases, attrs)
 
         return new_class
-    
+
+import datetime
 class BaseRequest(object):
     """
     Base class for all RestXL request classes.
     """       
     def __init__(self,*args,**kwargs):
         self.args = args
-        self.kwargs = kwargs        
+        self.kwargs = kwargs
+                
         
     def __call__(self):
         self._urlvars = {}
@@ -92,7 +97,7 @@ class BaseRequest(object):
         if len(self._urlvars) != 0:
             body = urlencode(self._urlvars)
             if method == 'GET':
-                request_url += '?'+body
+                request_url.join('?%s' %(body))
                 body = None
         else:
             body = None
@@ -118,12 +123,3 @@ class BaseRequest(object):
         
 class Request(BaseRequest):
     __metaclass__ = DeclarativeVariablesMetaclass
-    
-class TestRequest(Request):
-    auth_user = CharHeader(verbose_name='X-Auth-User',required=True)
-    
-class TestRequestB(TestRequest):
-    auth_key = CharHeader(verbose_name='X-Auth-Key',required=True)
-    class Meta:
-        request_url = 'https://auth.api.rackspacecloud.com/v1.0'
-        response_type = 'raw'
