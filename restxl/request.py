@@ -56,7 +56,7 @@ class DeclarativeVariablesMetaclass(type):
 
         return new_class
 
-import datetime
+
 class BaseRequest(object):
     """
     Base class for all RestXL request classes.
