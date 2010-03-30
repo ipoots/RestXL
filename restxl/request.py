@@ -18,10 +18,17 @@ try:
     from BeautifulSoup import BeautifulSoup
 except:
     raise ImportError('beautifulsoup must be installed')
-
+__all__ = [
+    'Request',
+    'BaseRequest'
+    ]
 class RestXLRequestError(Exception):
     def __init__(self,msg):
-        return msg
+        self.error_msg = msg
+        
+    def __str__(self):
+        return self.error_msg
+    
 def get_declared_variables(bases, attrs):
     variables = {}
     v_update = variables.update
@@ -96,14 +103,15 @@ class BaseRequest(object):
         request_url = getattr(self.Meta, 'request_url') + getattr(self.Meta, 'request_path', '')
         if len(self._urlvars) != 0:
             body = urlencode(self._urlvars)
-            if method == 'GET':
-                request_url.join('?%s' %(body))
+            if method == 'GET': 
+                request_url = '%s?%s' %(request_url,body)
                 body = None
         else:
             body = None
         headers = getattr(self, '_headers',{})
         h = httplib2.Http()
         resp, content = h.request(request_url, method=method, body=body,headers=headers)
+        
         if response_type == 'xml':
             nd = simplexmlapi.loads(content)
         if response_type == 'json':
@@ -112,6 +120,7 @@ class BaseRequest(object):
             nd = BeautifulSoup(content)
         if response_type == 'raw':
             nd = content
+        
         return nd,resp
     
     class Meta:

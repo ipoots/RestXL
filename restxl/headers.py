@@ -1,6 +1,11 @@
 """    
 Default Header objects
 """
+__all__ = [
+    "CharHeader",
+    "IntegerHeader",
+    "Header"
+    ]
 
 class RequiredHeaderException(Exception):
     def __init__(self,errormsg=''):

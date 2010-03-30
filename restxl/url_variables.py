@@ -2,14 +2,21 @@
 Default Header objects
 """
 from validators import *
-
+__all__ = [
+    "CharVariable",
+    "IntegerVariable",
+    "URLVariable"
+    ]
 class RequiredURLVariableException(Exception):
     def __init__(self,errormsg=''):
         return errormsg
 
 class URLVariableValidationException(Exception):
     def __init__(self,errormsg=''):
-        return errormsg
+        self.errormsg = errormsg
+        
+    def __str__(self):
+        return self.errormsg
 
 class URLVariable(object):
     """
@@ -42,7 +49,7 @@ class CharVariable(URLVariable):
         
     def validate(self,value):
         if not isinstance(value, str):
-            raise URLVariableValidationException
+            raise URLVariableValidationException('Value not a string')
         if self.max_length:
             if len(value) > self.max_length:
                 raise URLVariableValidationException(
