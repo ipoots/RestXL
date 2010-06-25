@@ -49,7 +49,8 @@ class CharVariable(URLVariable):
         
     def validate(self,value):
         if not isinstance(value, str):
-            raise URLVariableValidationException('Value not a string')
+            if not isinstance(value, unicode):
+                raise URLVariableValidationException('Value not a string')
         if self.max_length:
             if len(value) > self.max_length:
                 raise URLVariableValidationException(
