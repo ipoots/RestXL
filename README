@@ -1,1 +1,77 @@
 RestXL
+A Python framework to make creating REST API clients easier. It uses declarative syntax (much like Django forms and models).
+
+EXAMPLE
+This sample is for the Nirvanix API.
+
+from restxl.request import Request
+from restxl.client import RestXLer
+
+class NVXRequest(request.Request):            
+	class Meta(request.Request.Meta):
+        request_url = 'https://services.nirvanix.com'
+        
+class SessionTokenReq(NVXRequest):
+    """
+    Nirvanix Session Token Request
+    Subclass this class so you don't have to add sessionToken to every class.
+    """
+    sessionToken = request.CharVariable(required=True)
+    
+class CreateFoldersReq(SessionTokenReq):
+    """
+    Nirvanix Create Folders Request
+    """
+    folderPath = request.CharVariable(required=True)
+    
+    class Meta(SessionTokenReq.Meta):
+        request_path = '/ws/IMFS/CreateFolders.ashx'
+
+
+class Nirvanix(RestXLer):
+    """
+    Nirvanix RestXL class
+    This class registers all of the requests classes so its easy to call them.
+    """
+    def __init__(self,
+                 username=None,
+                 password=None,
+                 app_key=None,
+                 session_key=None,
+                 proxy_addr=None,):
+        self.username = username
+        self.password = password
+        self.app_key = app_key
+        if proxy_addr:
+            self.proxy_addr = proxy_addr
+        if session_key:
+            self.session_key = session_key
+        else:
+            tt = self.login()
+            if tt.ResponseCode._ == '0':
+                self.session_key = tt.SessionToken._
+            
+#    START AUTHENTICATION NAMESPACE        
+    def login(self):
+        """
+        Login
+        Doc URL: http://developer.nirvanix.com/sitefiles/1000/API.html#_Toc175999910
+        """
+        cs = LoginReq(
+            username=self.username,
+            password=self.password,
+            appKey=self.app_key)
+        tt = cs()
+        self.session_key = tt.SessionToken._
+        return tt
+    
+    #All you do is register the Request classes on the RestXLer class
+    create_folders = CreateFoldersReq
+    
+nvx = Nirvanix(USERNAME,PASSWORD,APPKEY)
+
+create_folder = nvx(
+                'create_folders', #Just used the create_folders attribute name here
+                sessionToken=self.nvx.session_key,
+                folderPath='/ipoots',
+            )
