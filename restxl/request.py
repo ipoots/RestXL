@@ -20,7 +20,8 @@ except:
     raise ImportError('beautifulsoup must be installed')
 __all__ = [
     'Request',
-    'BaseRequest'
+    'BaseRequest',
+    'DeclarativeVariablesMetaclass'    
     ]
 class RestXLRequestError(Exception):
     def __init__(self,msg):
@@ -78,11 +79,14 @@ class BaseRequest(object):
         self._headers = {}
         for key,value in self.base_variables.items():
             urlvar = self.kwargs.get(key,None)
-            value.validate(urlvar)
-            if hasattr(value, 'verbose_name'):
-                self._urlvars.update({value.verbose_name:urlvar})
-            else:
-                self._urlvars.update({key:urlvar})
+            required = getattr(urlvar, 'required',False)
+            if required:
+                value.validate(urlvar)
+            if urlvar != None:
+                if hasattr(value, 'verbose_name'):
+                    self._urlvars.update({value.verbose_name:urlvar})
+                else:
+                    self._urlvars.update({key:urlvar})
         for key,value in self.base_headers.items():
             header = self.kwargs.get(key,None)
             value.validate(header)

@@ -40,14 +40,20 @@ class URLVariable(object):
     
 class CharVariable(URLVariable):
     def __init__(
-        self,max_length=None,min_length=None,
+        self,
+        max_length=None,
+        min_length=None,
+        required=False,
         *args, **kwargs
         ):
         self.max_length = max_length
         self.min_length = min_length
+        self.required = required
         super(CharVariable, self).__init__(*args, **kwargs)
         
     def validate(self,value):
+        if self.required and not value:
+            raise URLVariableValidationException('This value is required')
         if not isinstance(value, str):
             if not isinstance(value, unicode):
                 raise URLVariableValidationException('Value not a string')
