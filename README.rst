@@ -13,7 +13,7 @@ Example Request
 
 http://api.example.com/API/search?search_term=ipoots
 
-HEADERS
+HEADERS::
 GET /API/search?search_term=ipoots HTTP/1.1
 Host: api.example.com
 Auth-User: brian
@@ -32,7 +32,7 @@ Headers
 ~~~~~~~
 Request headers.  (auth_user and auth_key are the specified headers in the example above)
 
-These are specified in the following way:
+These are specified in the following way::
 
 from restxl import request,client
 
