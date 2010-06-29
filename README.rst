@@ -34,36 +34,36 @@ Request headers.  (auth_user and auth_key are the specified headers in the examp
 
 These are specified in the following way::
 
-from restxl import request,client
-
-class KeywordSearch(request.Request):
-   #This is the URL Variable. CharVarible is a subclass of the URLVariable class.
-   search_term = request.CharVariable(required=True)
-    
-   #These are the Headers. CharHeader is a subclass of the Header class.
-   auth_user = request.CharHeader(required=True,verbose_name='Auth-User')
-   auth_key = request.CharHeader(required=True,verbose_name='Auth-Key')
-   
-   class Meta:
-       method = 'GET' #GET is the default
-       response_type = 'xml' #xml is the default
-       request_url = http://www.example.com
-       request_path = '/API/search'
-       
-class ExampleAPI(RestXLer):
-    
-    keyword_search = KeywordSearch
-    
-#To create an instance and use the ExampleAPI do the following
-exapi = ExampleAPI()
-
-#Call the keyword_search method
-key_search = exapi(
-    'keyword_search',
-    search_term='iPoots',
-    auth_user='brian',
-    auth_key='abcdefg123456abcdefg123456'
-    )
+	from restxl import request,client
+	
+	class KeywordSearch(request.Request):
+	   #This is the URL Variable. CharVarible is a subclass of the URLVariable class.
+	   search_term = request.CharVariable(required=True)
+	    
+	   #These are the Headers. CharHeader is a subclass of the Header class.
+	   auth_user = request.CharHeader(required=True,verbose_name='Auth-User')
+	   auth_key = request.CharHeader(required=True,verbose_name='Auth-Key')
+	   
+	   class Meta:
+	       method = 'GET' #GET is the default
+	       response_type = 'xml' #xml is the default
+	       request_url = http://www.example.com
+	       request_path = '/API/search'
+	       
+	class ExampleAPI(RestXLer):
+	    
+	    keyword_search = KeywordSearch
+	    
+	#To create an instance and use the ExampleAPI do the following
+	exapi = ExampleAPI()
+	
+	#Call the keyword_search method
+	key_search = exapi(
+	    'keyword_search',
+	    search_term='iPoots',
+	    auth_user='brian',
+	    auth_key='abcdefg123456abcdefg123456'
+	    )
 
     
 RestXLer
@@ -78,10 +78,10 @@ Installation
 Dependencies
 ~~~~~~~~~~~~
 
- * _simplexmlapi
- * _beautifulsoup
- * _simplejson or json
- * _httplib2
+ * simplexmlapi
+ * beautifulsoup
+ * simplejson or json
+ * httplib2
 
 Installing restxl
 ~~~~~~~~~~~~~~~~~
@@ -91,8 +91,3 @@ Install into your python path using pip or easy_install::
     pip install restxl
     easy_install restxl    
     
-
-.. _simplexmlapi : http://code.google.com/p/simplexmlapi/
-.. _beautifulsoup : http://www.crummy.com/software/BeautifulSoup/
-.. _simplejson : http://code.google.com/p/simplejson/
-.. _httplib2 : http://code.google.com/p/httplib2/
