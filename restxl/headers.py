@@ -8,12 +8,18 @@ __all__ = [
     ]
 
 class RequiredHeaderException(Exception):
-    def __init__(self,errormsg=''):
-        return errormsg
+    def __init__(self,msg):
+        self.error_msg = msg
+        
+    def __str__(self):
+        return self.error_msg
     
 class HeaderValidationException(Exception):
-    def __init__(self,errormsg=''):
-        return errormsg
+    def __init__(self,msg):
+        self.error_msg = msg
+        
+    def __str__(self):
+        return self.error_msg
     
 class Header(object):
     """
@@ -46,7 +52,8 @@ class CharHeader(Header):
         
     def validate(self,value):
         if not isinstance(value, str):
-            raise HeaderValidationException
+            if not isinstance(value, unicode):
+                raise HeaderValidationException('Not an instance of a string or unicode')
         if self.max_length:
             if len(value) > self.max_length:
                 raise HeaderValidationException(

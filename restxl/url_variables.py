@@ -8,8 +8,11 @@ __all__ = [
     "URLVariable"
     ]
 class RequiredURLVariableException(Exception):
-    def __init__(self,errormsg=''):
-        return errormsg
+    def __init__(self,msg):
+        self.error_msg = msg
+        
+    def __str__(self):
+        return self.error_msg
 
 class URLVariableValidationException(Exception):
     def __init__(self,errormsg=''):

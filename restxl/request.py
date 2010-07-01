@@ -21,7 +21,9 @@ except:
 __all__ = [
     'Request',
     'BaseRequest',
-    'DeclarativeVariablesMetaclass'    
+    'DynamicRequest'
+    'DeclarativeVariablesMetaclass'
+    'RestXLResponse'    
     ]
 class RestXLRequestError(Exception):
     def __init__(self,msg):
@@ -29,6 +31,12 @@ class RestXLRequestError(Exception):
         
     def __str__(self):
         return self.error_msg
+
+class RestXLResponse(object):
+     def __init__(self,response,content):
+         self.response = response
+         self.content = content
+
     
 def get_declared_variables(bases, attrs):
     variables = {}
@@ -72,11 +80,12 @@ class BaseRequest(object):
     def __init__(self,*args,**kwargs):
         self.args = args
         self.kwargs = kwargs
-                
+        
         
     def __call__(self):
         self._urlvars = {}
         self._headers = {}
+            
         for key,value in self.base_variables.items():
             urlvar = self.kwargs.get(key,None)
             required = getattr(urlvar, 'required',False)
@@ -89,22 +98,35 @@ class BaseRequest(object):
                     self._urlvars.update({key:urlvar})
         for key,value in self.base_headers.items():
             header = self.kwargs.get(key,None)
-            value.validate(header)
-            if hasattr(value, 'verbose_name'):
-                self._headers.update({value.verbose_name:header})
-            else:
-                self._headers.update({key:header})
+            required = getattr(header, 'required',False)
+            if required:
+                value.validate(header)
+            if header != None:
+                if hasattr(value, 'verbose_name'):
+                    self._headers.update({value.verbose_name:header})
+                else:
+                    self._headers.update({key:header})
         return self.rest_request()
         
     def rest_request(self):
         
         method = getattr(self.Meta, 'method','GET')
-         
-        response_type = getattr(self.Meta, 'response_type','xml')
-        if not hasattr(self.Meta, 'request_url'):
-            raise RestXLRequestError('You must have a request url in the Meta class.')
         
-        request_url = getattr(self.Meta, 'request_url') + getattr(self.Meta, 'request_path', '')
+        response_type = getattr(self.Meta, 'response_type','xml')
+        
+        
+        try:
+            request_url = getattr(self.Meta, 'request_url')
+        except:
+            raise RestXLRequestError('request_url needs to be defined')
+        try:
+            request_path = getattr(self.Meta, 'request_path')
+        except:
+            request_path = ''
+            
+        request_url = request_url + request_path
+
+        
         if len(self._urlvars) != 0:
             body = urlencode(self._urlvars)
             if method == 'GET': 
@@ -125,7 +147,8 @@ class BaseRequest(object):
         if response_type == 'raw':
             nd = content
         
-        return nd,resp
+        return RestXLResponse(resp,nd)
+
     
     class Meta:
         """
@@ -136,3 +159,73 @@ class BaseRequest(object):
         
 class Request(BaseRequest):
     __metaclass__ = DeclarativeVariablesMetaclass
+
+class DynamicRequest(Request):
+    def __call__(self,request_url,request_path=None):
+        self._urlvars = {}
+        self._headers = {}
+        
+        if request_path:
+            request_path = \
+            "/%s" % request_path
+            
+        for key,value in self.base_variables.items():
+            urlvar = self.kwargs.get(key,None)
+            required = getattr(urlvar, 'required',False)
+            if required:
+                value.validate(urlvar)
+            if urlvar != None:
+                if hasattr(value, 'verbose_name'):
+                    self._urlvars.update({value.verbose_name:urlvar})
+                else:
+                    self._urlvars.update({key:urlvar})
+        for key,value in self.base_headers.items():
+            header = self.kwargs.get(key,None)
+            required = getattr(header, 'required',False)
+            if required:
+                value.validate(header)
+            if header != None:
+                if hasattr(value, 'verbose_name'):
+                    self._headers.update({value.verbose_name:header})
+                else:
+                    self._headers.update({key:header})
+        if request_path:
+            return self.rest_request(request_url,request_path)
+        else:
+            return self.rest_request(request_url)
+        
+    def rest_request(self,request_url,request_path=None):
+        
+        method = getattr(self.Meta, 'method','GET')
+        
+        response_type = getattr(self.Meta, 'response_type','xml')
+        
+        if not request_url:
+            raise RestXLRequestError('request_url needs to be defined')
+            
+        if request_path:
+            request_url = request_url + request_path
+        else:
+            request_url = request_url
+        
+        if len(self._urlvars) != 0:
+            body = urlencode(self._urlvars)
+            if method == 'GET': 
+                request_url = '%s?%s' %(request_url,body)
+                body = None
+        else:
+            body = None
+        headers = getattr(self, '_headers',{})
+        h = httplib2.Http()
+        resp, content = h.request(request_url, method=method, body=body,headers=headers)
+        
+        if response_type == 'xml':
+            nd = simplexmlapi.loads(content)
+        if response_type == 'json':
+            nd = json.loads(content)
+        if response_type == 'html':
+            nd = BeautifulSoup(content)
+        if response_type == 'raw':
+            nd = content
+        
+        return RestXLResponse(resp,nd)
