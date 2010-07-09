@@ -84,18 +84,19 @@ class BaseRequest(object):
         
     def __call__(self):
         self._urlvars = {}
-        self._headers = {}
-            
-        for key,value in self.base_variables.items():
-            urlvar = self.kwargs.get(key,None)
-            required = getattr(urlvar, 'required',False)
-            if required:
-                value.validate(urlvar)
-            if urlvar != None:
-                if hasattr(value, 'verbose_name'):
-                    self._urlvars.update({value.verbose_name:urlvar})
-                else:
-                    self._urlvars.update({key:urlvar})
+        self._headers = {}    
+        self.load_headers()
+        self.load_variables()
+        request_url = getattr(self.Meta, 'request_url',None)
+        request_path = getattr(self.Meta, 'request_path',None)
+        
+        if not request_url:
+            raise RestXLRequestError('There is no request_url specified. You must set one.')
+        if request_path:
+            return self.rest_request(request_url, request_path)
+        return self.rest_request(request_url)
+    
+    def load_headers(self):
         for key,value in self.base_headers.items():
             header = self.kwargs.get(key,None)
             required = getattr(header, 'required',False)
@@ -106,26 +107,45 @@ class BaseRequest(object):
                     self._headers.update({value.verbose_name:header})
                 else:
                     self._headers.update({key:header})
-        return self.rest_request()
-        
-    def rest_request(self):
+    def load_variables(self):
+        for key,value in self.base_variables.items():
+            urlvar = self.kwargs.get(key,None)
+            required = getattr(urlvar, 'required',False)
+            if required:
+                value.validate(urlvar)
+            if urlvar != None:
+                if hasattr(value, 'verbose_name'):
+                    self._urlvars.update({value.verbose_name:urlvar})
+                else:
+                    self._urlvars.update({key:urlvar})
+    def load_xml(self,content):
+        nd = simplexmlapi.loads(content)
+        return nd
+    def load_json(self,content):
+        nd = json.loads(content)
+        return nd
+    def load_html(self,content):
+        nd = BeautifulSoup(content)
+        return nd
+    def load_raw(self,content):
+        return content   
+    def get_httplib_request(self,request_url,method,body,headers):
+        h = httplib2.Http()
+        resp, content = h.request(request_url, method=method, body=body,headers=headers)
+        return resp, content     
+    def rest_request(self,request_url,request_path=None):
         
         method = getattr(self.Meta, 'method','GET')
         
         response_type = getattr(self.Meta, 'response_type','xml')
         
-        
-        try:
-            request_url = getattr(self.Meta, 'request_url')
-        except:
+        if not request_url:
             raise RestXLRequestError('request_url needs to be defined')
-        try:
-            request_path = getattr(self.Meta, 'request_path')
-        except:
-            request_path = ''
-            
-        request_url = request_url + request_path
-
+        
+        if request_path:
+            request_url = request_url + request_path
+        else:
+            request_url = request_url
         
         if len(self._urlvars) != 0:
             body = urlencode(self._urlvars)
@@ -134,18 +154,19 @@ class BaseRequest(object):
                 body = None
         else:
             body = None
+            
         headers = getattr(self, '_headers',{})
-        h = httplib2.Http()
-        resp, content = h.request(request_url, method=method, body=body,headers=headers)
+        
+        resp,content = self.get_httplib_request(request_url, method, body, headers)
         
         if response_type == 'xml':
-            nd = simplexmlapi.loads(content)
+            nd = self.load_xml(content)
         if response_type == 'json':
-            nd = json.loads(content)
+            nd = self.load_json(content)
         if response_type == 'html':
-            nd = BeautifulSoup(content)
+            nd = self.load_html(content)
         if response_type == 'raw':
-            nd = content
+            nd = self.load_raw(content)
         
         return RestXLResponse(resp,nd)
 
@@ -169,63 +190,11 @@ class DynamicRequest(Request):
             request_path = \
             "/%s" % request_path
             
-        for key,value in self.base_variables.items():
-            urlvar = self.kwargs.get(key,None)
-            required = getattr(urlvar, 'required',False)
-            if required:
-                value.validate(urlvar)
-            if urlvar != None:
-                if hasattr(value, 'verbose_name'):
-                    self._urlvars.update({value.verbose_name:urlvar})
-                else:
-                    self._urlvars.update({key:urlvar})
-        for key,value in self.base_headers.items():
-            header = self.kwargs.get(key,None)
-            required = getattr(header, 'required',False)
-            if required:
-                value.validate(header)
-            if header != None:
-                if hasattr(value, 'verbose_name'):
-                    self._headers.update({value.verbose_name:header})
-                else:
-                    self._headers.update({key:header})
+        self.load_headers()
+        self.load_variables()
         if request_path:
             return self.rest_request(request_url,request_path)
         else:
             return self.rest_request(request_url)
-        
-    def rest_request(self,request_url,request_path=None):
-        
-        method = getattr(self.Meta, 'method','GET')
-        
-        response_type = getattr(self.Meta, 'response_type','xml')
-        
-        if not request_url:
-            raise RestXLRequestError('request_url needs to be defined')
-            
-        if request_path:
-            request_url = request_url + request_path
-        else:
-            request_url = request_url
-        
-        if len(self._urlvars) != 0:
-            body = urlencode(self._urlvars)
-            if method == 'GET': 
-                request_url = '%s?%s' %(request_url,body)
-                body = None
-        else:
-            body = None
-        headers = getattr(self, '_headers',{})
-        h = httplib2.Http()
-        resp, content = h.request(request_url, method=method, body=body,headers=headers)
-        
-        if response_type == 'xml':
-            nd = simplexmlapi.loads(content)
-        if response_type == 'json':
-            nd = json.loads(content)
-        if response_type == 'html':
-            nd = BeautifulSoup(content)
-        if response_type == 'raw':
-            nd = content
-        
-        return RestXLResponse(resp,nd)
+    
+    
