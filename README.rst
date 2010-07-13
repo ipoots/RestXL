@@ -83,11 +83,8 @@ Dependencies
  * simplejson or json
  * httplib2
 
-Installing restxl
-~~~~~~~~~~~~~~~~~
+Projects Using RestXL
+=====================
 
-Install into your python path using pip or easy_install::
-
-    pip install restxl
-    easy_install restxl    
+ * CloudStory (http://github.com/bjinwright/cloudstory)
     
