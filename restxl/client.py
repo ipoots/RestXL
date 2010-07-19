@@ -3,8 +3,7 @@ Created on Jun 25, 2010
 
 @author: brianjinwright
 '''
-from request import DeclarativeVariablesMetaclass,\
-Request,DynamicRequest
+from request import DeclarativeVariablesMetaclass,Request
 __all__ = [
     'RestXLer',
     'BaseRestXLer'
@@ -56,19 +55,12 @@ class BaseRestXLer(object):
         cs = self.base_requests.get(method_name,None)
         if cs:
             req_cls = cs(**kwargs)
-            if isinstance(req_cls, DynamicRequest):
-                request_path = None
-                if kwargs.get('request_url',None):
-                    request_url = kwargs.get('request_url')
-                if kwargs.get('request_path',None):
-                    request_path = '%s' \
-                    % kwargs.get('request_path')
-                if request_path:
-                    tt = req_cls(request_url,request_path)
-                else:
-                    tt = req_cls(request_url)
+            if kwargs.get('request_url',None):
+                request_url = kwargs.get('request_url')
+                tt = req_cls(request_url)
             else:
                 tt = req_cls()
+            
         else:
             raise RestXLerError('This method does not exists')
         return tt
