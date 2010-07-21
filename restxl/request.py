@@ -136,6 +136,10 @@ class BaseRequest(object):
             if pathvar != None:
                 setattr(value, 'value', pathvar)
                 pl_append(value)
+            if not pathvar and value.default_value:
+                setattr(value, 'value', value.default_value)
+                pl_append(value)
+                
         tt = sorted(pathv_list,key=attrgetter('value'))
         sorted_values = [i.value for i in tt]
         return '/'.join(sorted_values)
@@ -181,10 +185,10 @@ class BaseRequest(object):
             raise RestXLRequestError('request_url needs to be defined')
         
         if request_path:
-            request_url = '%s/%s'% (request_url,request_path)
+            request_url = '%s/%s/'% (request_url,request_path)
             
         else:
-            request_url = request_url
+            request_url = '%s/' % request_url
         
         if len(self._urlvars) != 0:
             body = urlencode(self._urlvars)

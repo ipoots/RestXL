@@ -28,6 +28,7 @@ class PathVariable(object):
     
     def __init__(
         self,
+        default_value=None,
         required=False,
         validators=[],
         verbose_name=None
@@ -41,6 +42,7 @@ class PathVariable(object):
     def validate(self,value):
         for i in self.validators:
             i.validate()
+
 class CharPathVariable(PathVariable):
     def __init__(
         self,
@@ -54,6 +56,7 @@ class CharPathVariable(PathVariable):
         self.max_length = max_length
         self.min_length = min_length
         self.required = required
+        self.default_value = default_value
         super(CharPathVariable, self).__init__(*args, **kwargs)
         
     def validate(self,value):
@@ -84,6 +87,7 @@ class IntegerPathVariable(PathVariable):
         ):
         self.max_value = max_value
         self.min_value = min_value
+        self.default_value = default_value
         super(IntegerPathVariable, self).__init__(*args, **kwargs)
         
     def validate(self,value):
