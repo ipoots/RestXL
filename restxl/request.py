@@ -123,6 +123,7 @@ class BaseRequest(object):
                     self._headers.update({value.verbose_name:header})
                 else:
                     self._headers.update({key:header})
+        
     def load_pathvars(self):
         if len(self.base_path_variables) < 1:
             return None
@@ -136,12 +137,17 @@ class BaseRequest(object):
             if pathvar != None:
                 setattr(value, 'value', pathvar)
                 pl_append(value)
+                
             if not pathvar and value.default_value:
                 setattr(value, 'value', value.default_value)
+                
                 pl_append(value)
                 
-        tt = sorted(pathv_list,key=attrgetter('value'))
+                
+        tt = sorted(pathv_list,key=attrgetter('position'))
+        
         sorted_values = [i.value for i in tt]
+        
         return '/'.join(sorted_values)
     def load_variables(self):
         for key,value in self.base_variables.items():
@@ -173,6 +179,7 @@ class BaseRequest(object):
     def get_httplib_request(self,request_url,method,body,headers):
         h = httplib2.Http()
         resp, content = h.request(request_url, method=method, body=body,headers=headers)
+        
         return resp, content     
     
     def rest_request(self,request_url,request_path=None):

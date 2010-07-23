@@ -28,6 +28,7 @@ class PathVariable(object):
     
     def __init__(
         self,
+        position,
         default_value=None,
         required=False,
         validators=[],
@@ -43,6 +44,7 @@ class PathVariable(object):
         for i in self.validators:
             i.validate()
 
+
 class CharPathVariable(PathVariable):
     def __init__(
         self,
@@ -53,11 +55,12 @@ class CharPathVariable(PathVariable):
         required=False,
         *args, **kwargs
         ):
+        self.position = position
         self.max_length = max_length
         self.min_length = min_length
         self.required = required
         self.default_value = default_value
-        super(CharPathVariable, self).__init__(*args, **kwargs)
+        super(CharPathVariable, self).__init__(position,*args, **kwargs)
         
     def validate(self,value):
         if self.required and not value:
@@ -85,10 +88,11 @@ class IntegerPathVariable(PathVariable):
         max_value=None,min_value=None,
         *args, **kwargs
         ):
+        self.position = position
         self.max_value = max_value
         self.min_value = min_value
         self.default_value = default_value
-        super(IntegerPathVariable, self).__init__(*args, **kwargs)
+        super(IntegerPathVariable, self).__init__(position,*args, **kwargs)
         
     def validate(self,value):
         if not isinstance(value, int):
